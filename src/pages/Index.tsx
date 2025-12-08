@@ -2,9 +2,8 @@ import { Header } from '@/components/Header';
 import { TabNavigation } from '@/components/TabNavigation';
 import { StageSelector } from '@/components/StageSelector';
 import { FileAttachmentSection } from '@/components/FileAttachmentSection';
-import { CommonSettings } from '@/components/CommonSettings';
+import { RightPanel } from '@/components/RightPanel';
 import { PromptPreview } from '@/components/PromptPreview';
-import { PromptLibrary } from '@/components/PromptLibrary';
 import { ReportTab } from '@/components/tabs/ReportTab';
 import { ExamTab } from '@/components/tabs/ExamTab';
 import { CodingTab } from '@/components/tabs/CodingTab';
@@ -43,27 +42,27 @@ const Index = () => {
     <div className="min-h-screen">
       <Header theme={theme} onToggleTheme={toggleTheme} />
       
-      <main className="max-w-[1600px] mx-auto p-4 md:p-6">
+      <main className="max-w-[1200px] mx-auto p-4 md:p-6 pb-24">
         <div className="mb-6">
           <TabNavigation activeTab={state.activeTab} onTabChange={state.setActiveTab} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column - Tab Content */}
-          <div className="lg:col-span-7 xl:col-span-8 space-y-4">
-            {renderTabContent()}
-            <StageSelector stages={state.stages} onChange={state.setStages} />
-            <FileAttachmentSection attachment={state.fileAttachment} onChange={state.setFileAttachment} />
-            <PromptPreview prompt={state.generatedPrompt} onGenerate={handleGenerate} onSave={state.savePrompt} />
-          </div>
-
-          {/* Right Column - Settings & Library */}
-          <div className="lg:col-span-5 xl:col-span-4 space-y-4">
-            <CommonSettings settings={state.commonSettings} onChange={state.setCommonSettings} />
-            <PromptLibrary prompts={state.savedPrompts} onLoad={state.loadPrompt} onDelete={state.deletePrompt} />
-          </div>
+        <div className="space-y-4">
+          {renderTabContent()}
+          <StageSelector stages={state.stages} onChange={state.setStages} />
+          <FileAttachmentSection attachment={state.fileAttachment} onChange={state.setFileAttachment} />
+          <PromptPreview prompt={state.generatedPrompt} onGenerate={handleGenerate} onSave={state.savePrompt} />
         </div>
       </main>
+
+      {/* Right Slide Panel */}
+      <RightPanel
+        settings={state.commonSettings}
+        onSettingsChange={state.setCommonSettings}
+        savedPrompts={state.savedPrompts}
+        onLoadPrompt={state.loadPrompt}
+        onDeletePrompt={state.deletePrompt}
+      />
     </div>
   );
 };
