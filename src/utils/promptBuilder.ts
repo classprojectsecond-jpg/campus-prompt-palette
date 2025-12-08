@@ -10,6 +10,17 @@ import type {
   ImageTabData,
   TabType 
 } from '@/types/prompt';
+import { buildPrompt } from '@/promptEngine/buildPrompt';
+import type { 
+  CommonSettings as EngineCommonSettings,
+  TabInputs,
+  ReportEssayInputs,
+  ExamInputs,
+  CodingInputs,
+  ResearchInputs,
+  CareerEmailInputs,
+  ImageInputs
+} from '@/promptEngine/types';
 
 const TAB_NAMES: Record<TabType, string> = {
   report: '레포트·에세이',
@@ -20,24 +31,72 @@ const TAB_NAMES: Record<TabType, string> = {
   image: '이미지 생성',
 };
 
+function convertToEngineCommonSettings(
+  settings: CommonSettings, 
+  tone?: "academic" | "report" | "casual" | "formalEmail" | "presentation"
+): EngineCommonSettings {
+  const levelMap: Record<string, "HS" | "UG1" | "UG2" | "UG3" | "UG4" | "GR"> = {
+    '1': 'UG1', '2': 'UG2', '3': 'UG3', '4': 'UG4',
+    'graduate': 'GR', 'other': 'UG2'
+  };
+
+  const langLevelMap: Record<string, "HS" | "UG" | "GR"> = {
+    'high-school': 'HS',
+    'undergraduate': 'UG',
+    'graduate': 'GR',
+    'expert': 'GR'
+  };
+
+  const modelMap: Record<string, "ChatGPT" | "Gemini" | "Other"> = {
+    'chatgpt': 'ChatGPT',
+    'gemini': 'Gemini',
+    'other': 'Other'
+  };
+
+  return {
+    mode: settings.mode === 'learning' ? 'learning' : 'deliverable',
+    outlineMode: settings.resultFormat === 'outline' ? 'outline' : 'full',
+    tonePreset: tone || 'academic',
+    includeReferences: settings.includeSources,
+    selfCheckEnabled: settings.includeSelfCheck,
+    subjectProfile: {
+      courseName: settings.subjectName || undefined,
+      majorOrGE: settings.majorType || undefined,
+      level: levelMap[settings.gradeLevel] || 'UG2',
+      professorStyle: settings.professorStyle === 'strict' ? 'strict' : settings.professorStyle === 'flexible' ? 'relaxed' : undefined,
+      assignmentType: undefined
+    },
+    userProfile: {
+      major: settings.userMajor || undefined,
+      interests: settings.interestAreas || undefined,
+      preferredExamples: undefined
+    },
+    styleSampleText: settings.writingStyleSample || undefined,
+    timePressure: settings.deadlineValue ? {
+      deadlineDescription: `${settings.deadlineType === 'assignment' ? '과제 마감' : settings.deadlineType === 'exam' ? '시험' : '기타'}까지 ${settings.deadlineValue} 남음`,
+      examRemaining: settings.deadlineType === 'exam' ? settings.deadlineValue : undefined
+    } : undefined,
+    aiPolicyText: settings.includeRegulation && settings.aiRegulation ? settings.aiRegulation : undefined,
+    modelPreference: modelMap[settings.targetModel] || 'ChatGPT',
+    languageLevel: langLevelMap[settings.difficultyLevel] || 'UG'
+  };
+}
+
 function buildCommonContext(settings: CommonSettings): string {
   const parts: string[] = [];
 
-  // Mode
   if (settings.mode === 'learning') {
     parts.push('**모드**: 학습 모드 - 힌트, 개념 설명, 피드백, 자료 조사 방향 제시 중심으로 답변해 주세요. 정답이나 완성된 글을 바로 주지 말고, 스스로 생각할 수 있도록 도와주세요.');
   } else {
     parts.push('**모드**: 과제/결과물 모드 - 실제 제출 가능한 수준의 완성된 텍스트를 작성해 주세요.');
   }
 
-  // Result format
   if (settings.resultFormat === 'outline') {
     parts.push('**결과 형태**: 아웃라인만 - 구조와 목차 중심으로 작성해 주세요.');
   } else {
     parts.push('**결과 형태**: 완전 작성 - 본문까지 포함하여 작성해 주세요.');
   }
 
-  // Profile
   const profileParts: string[] = [];
   if (settings.subjectName) profileParts.push(`과목: ${settings.subjectName}`);
   if (settings.userMajor) profileParts.push(`사용자 전공: ${settings.userMajor}`);
@@ -54,7 +113,6 @@ function buildCommonContext(settings: CommonSettings): string {
     parts.push(`**프로필 정보**: ${profileParts.join(', ')}`);
   }
 
-  // Difficulty
   const difficultyMap: Record<string, string> = {
     'high-school': '고등학생 수준',
     'undergraduate': '학부생 수준',
@@ -63,7 +121,6 @@ function buildCommonContext(settings: CommonSettings): string {
   };
   parts.push(`**난이도**: ${difficultyMap[settings.difficultyLevel]}`);
 
-  // Language
   const langMap: Record<string, string> = {
     'korean': '한국어',
     'english': '영어',
@@ -73,7 +130,6 @@ function buildCommonContext(settings: CommonSettings): string {
   parts.push(`**설명 언어**: ${langMap[settings.explanationLanguage]}`);
   parts.push(`**결과물 언어**: ${langMap[settings.outputLanguage]}`);
 
-  // Target model
   if (settings.targetModel === 'other' && settings.targetModelOther) {
     parts.push(`**대상 모델**: ${settings.targetModelOther}`);
   } else {
@@ -81,22 +137,18 @@ function buildCommonContext(settings: CommonSettings): string {
     parts.push(`**대상 모델**: ${modelMap[settings.targetModel] || settings.targetModel}`);
   }
 
-  // Sources
   if (settings.includeSources) {
     parts.push('\n**출처 요청**: 주장이나 통계에 대해 신뢰할 수 있는 출처(논문, 보고서, 공식 웹사이트 등)를 제안해 주세요. 단, 사용자가 직접 출처를 검증해야 합니다.');
   }
 
-  // Self-check
   if (settings.includeSelfCheck) {
     parts.push('\n**자기검토 요청**: 답변 마지막에 신뢰도를 1~10점으로 평가하고, 불확실하거나 추가 검증이 필요한 부분을 bullet으로 정리해 주세요.');
   }
 
-  // Writing style sample
   if (settings.writingStyleSample) {
     parts.push(`\n**스타일 참고**: 아래 샘플 글과 비슷한 수준의 어휘, 문장 길이, 문체로 작성해 주세요.\n---\n${settings.writingStyleSample}\n---`);
   }
 
-  // Deadline
   if (settings.deadlineValue) {
     const deadlineTypeMap: Record<string, string> = {
       'assignment': '과제 마감',
@@ -106,7 +158,6 @@ function buildCommonContext(settings: CommonSettings): string {
     parts.push(`\n**시간 제약**: ${deadlineTypeMap[settings.deadlineType]}까지 ${settings.deadlineValue} 남음. ${settings.mode === 'learning' ? '남은 시간 내에 가장 중요한 개념과 문제 유형을 우선적으로 다뤄 주세요.' : '시간 내 제출 가능한 최소 완성본을 목표로 해 주세요.'}`);
   }
 
-  // AI regulation
   if (settings.includeRegulation && settings.aiRegulation) {
     parts.push(`\n**AI 사용 규정 준수**: 아래 규정을 먼저 확인하고, 이 범위 내에서 답변해 주세요.\n---\n${settings.aiRegulation}\n---`);
   }
@@ -400,6 +451,173 @@ function buildImagePrompt(data: ImageTabData, stages: StageSelection): string {
   return parts.join('\n');
 }
 
+function convertReportData(data: ReportTabData, stages: StageSelection): ReportEssayInputs {
+  const wordCountMap: Record<string, string> = {
+    '300': '약 300자',
+    '800': '약 800자',
+    '1500': '약 1500자',
+    '3000': '약 3000자',
+    'other': data.wordCountOther || '사용자 지정 분량',
+  };
+  
+  return {
+    assignmentSummary: data.taskDescription || undefined,
+    topic: data.topic || undefined,
+    requiredSections: data.outlineStructure === 'other' ? data.outlineOther : 
+      data.outlineStructure === '3-paragraph' ? '3단락 (서론-본론-결론)' : '5단락 (서론-본론1-본론2-본론3-결론)',
+    lengthTarget: wordCountMap[data.wordCountPreset] || data.wordCountOther,
+    keyPoints: data.rubric || undefined,
+    prohibitedThings: undefined,
+    attachedMaterialSummary: data.researchScope ? `조사 범위: ${data.researchScope}, 자료 유형: ${data.sourceTypes}` : undefined,
+    stageCollectMaterial: stages.research,
+    stageOutline: stages.outline,
+    stageDraft: stages.fullWrite
+  };
+}
+
+function convertExamData(data: ExamTabData, stages: StageSelection): ExamInputs {
+  return {
+    examScope: data.examScope || undefined,
+    questionType: data.examType || undefined,
+    myWeakPoints: data.notesText || undefined,
+    timeAvailable: undefined,
+    wantPracticeSet: stages.fullWrite,
+    wantSummarySheet: stages.outline
+  };
+}
+
+function convertCodingData(data: CodingTabData, stages: StageSelection): CodingInputs {
+  const langMap: Record<string, string> = {
+    'python': 'Python',
+    'javascript': 'JavaScript',
+    'c-cpp': 'C/C++',
+    'matlab': 'MATLAB',
+    'other': data.languageOther || '기타',
+  };
+  
+  return {
+    goalDescription: data.featureDescription || undefined,
+    techStack: `${langMap[data.language]}${data.environment ? ', ' + data.environment : ''}`,
+    constraints: data.errorMessage || undefined,
+    currentCodeSnippet: data.currentCode || undefined,
+    wantStepPlan: stages.outline,
+    wantRefactor: stages.research
+  };
+}
+
+function convertResearchData(data: ResearchTabData): ResearchInputs {
+  const wordCountMap: Record<string, string> = {
+    '500': '약 500자',
+    '1000': '약 1000자',
+    '1500': '약 1500자',
+    'other': data.wordCountOther || '사용자 지정 분량',
+  };
+  
+  return {
+    researchTopic: data.researchTopic || undefined,
+    researchQuestion: data.currentIdea || undefined,
+    methodology: undefined,
+    targetVenueOrClass: undefined,
+    existingWorkSummary: data.referenceSummary || undefined,
+    lengthTarget: wordCountMap[data.wordCountPreset] || data.wordCountOther
+  };
+}
+
+function convertCareerData(data: CareerTabData, stages: StageSelection): CareerEmailInputs {
+  const emailTypeMap: Record<string, "professor" | "hr" | "networking" | "etc"> = {
+    'professor-email': 'professor',
+    'internship': 'hr',
+    'company-inquiry': 'hr',
+    'cover-letter': 'etc'
+  };
+  
+  const emailLengthMap: Record<string, string> = {
+    'short': '짧게 (5~7문장)',
+    'medium': '보통 (8~12문장)',
+    'long': '길게'
+  };
+  
+  const coverLetterLengthMap: Record<string, string> = {
+    '500': '약 500자',
+    '800': '약 800자',
+    '1000': '약 1000자',
+    '1500': '약 1500자'
+  };
+  
+  let lengthPreset: string | undefined;
+  if (data.documentType === 'cover-letter') {
+    if (data.coverLetterWordCount === 'other' && data.coverLetterWordCountOther) {
+      lengthPreset = data.coverLetterWordCountOther;
+    } else {
+      lengthPreset = coverLetterLengthMap[data.coverLetterWordCount] || '약 800자';
+    }
+  } else {
+    if (data.emailLength === 'other' && data.emailLengthOther) {
+      lengthPreset = data.emailLengthOther;
+    } else {
+      lengthPreset = emailLengthMap[data.emailLength] || '보통 (8~12문장)';
+    }
+  }
+  
+  return {
+    emailType: emailTypeMap[data.documentType] || 'etc',
+    purpose: data.coreMessage || undefined,
+    receiverProfile: data.recipientInfo || undefined,
+    keyPoints: data.experience || undefined,
+    lengthPreset,
+    wantCompanyResearch: stages.research && data.companyResearchMode,
+    wantOutline: stages.outline,
+    wantFullWrite: stages.fullWrite,
+    documentType: data.documentType === 'cover-letter' ? 'cover-letter' : 'email'
+  };
+}
+
+function convertImageData(data: ImageTabData): ImageInputs {
+  return {
+    imageGoal: data.imageType || undefined,
+    subject: data.serviceName || undefined,
+    style: data.styleKeywords || undefined,
+    colorPalette: undefined,
+    resolutionOrRatio: data.platform || undefined,
+    detailLevel: data.promptMode === 'outline' ? 'simple' : 'detailed',
+    negativePrompt: undefined
+  };
+}
+
+type EngineTone = "academic" | "report" | "casual" | "formalEmail" | "presentation";
+
+function getToneFromTab(
+  activeTab: TabType,
+  reportData: ReportTabData,
+  careerData: CareerTabData
+): EngineTone {
+  const validReportTones: Record<string, EngineTone> = {
+    'academic': 'academic',
+    'report': 'report',
+    'casual': 'casual',
+    'presentation': 'presentation'
+  };
+  
+  switch (activeTab) {
+    case 'report': {
+      const rawTone = reportData.tone;
+      return validReportTones[rawTone] || 'academic';
+    }
+    case 'career':
+      return 'formalEmail';
+    case 'research':
+      return 'academic';
+    case 'exam':
+      return 'academic';
+    case 'coding':
+      return 'casual';
+    case 'image':
+      return 'casual';
+    default:
+      return 'academic';
+  }
+}
+
 export function generatePrompt(
   activeTab: TabType,
   commonSettings: CommonSettings,
@@ -412,44 +630,39 @@ export function generatePrompt(
   careerData: CareerTabData,
   imageData: ImageTabData
 ): string {
-  const parts: string[] = [];
-
-  // Header
-  parts.push(`# ${TAB_NAMES[activeTab]} 프롬프트\n`);
-
-  // Common context
-  parts.push(buildCommonContext(commonSettings));
-
-  // Tab-specific content
+  const tone = getToneFromTab(activeTab, reportData, careerData);
+  const engineCommonSettings = convertToEngineCommonSettings(commonSettings, tone);
+  
+  let tabInputs: TabInputs;
+  
   switch (activeTab) {
     case 'report':
-      parts.push('\n---\n');
-      parts.push(buildReportPrompt(reportData, stages, commonSettings));
+      tabInputs = { tabId: 'reportEssay', data: convertReportData(reportData, stages) };
       break;
     case 'exam':
-      parts.push('\n---\n');
-      parts.push(buildExamPrompt(examData, stages));
+      tabInputs = { tabId: 'exam', data: convertExamData(examData, stages) };
       break;
     case 'coding':
-      parts.push('\n---\n');
-      parts.push(buildCodingPrompt(codingData, stages));
+      tabInputs = { tabId: 'coding', data: convertCodingData(codingData, stages) };
       break;
     case 'research':
-      parts.push('\n---\n');
-      parts.push(buildResearchPrompt(researchData, stages));
+      tabInputs = { tabId: 'research', data: convertResearchData(researchData) };
       break;
     case 'career':
-      parts.push('\n---\n');
-      parts.push(buildCareerPrompt(careerData, stages));
+      tabInputs = { tabId: 'careerEmail', data: convertCareerData(careerData, stages) };
       break;
     case 'image':
-      parts.push('\n---\n');
-      parts.push(buildImagePrompt(imageData, stages));
+      tabInputs = { tabId: 'image', data: convertImageData(imageData) };
       break;
+    default:
+      tabInputs = { tabId: 'reportEssay', data: convertReportData(reportData, stages) };
   }
 
-  // File attachment
-  parts.push(buildFileAttachmentContext(fileAttachment));
+  let prompt = buildPrompt(engineCommonSettings, tabInputs);
 
-  return parts.join('\n');
+  if (fileAttachment.hasAttachment && fileAttachment.description) {
+    prompt += `\n\n---\n\n# 첨부 파일\n\n나는 이미 "${fileAttachment.description}"에 해당하는 파일을 별도로 제출/업로드해 두었습니다. 이 파일도 함께 고려해 주세요.`;
+  }
+
+  return prompt;
 }
