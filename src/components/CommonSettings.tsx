@@ -20,21 +20,14 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
   };
 
   return (
-    <div className="glass-card rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-border/50 bg-secondary/30">
-        <h2 className="flex items-center gap-2 font-semibold text-foreground">
-          <Settings className="h-5 w-5 text-primary" />
-          공통 설정
-        </h2>
-      </div>
-
-      <Accordion type="multiple" defaultValue={['mode', 'profile']} className="px-4">
+    <div className="space-y-4 animate-fade-in">
+      <Accordion type="multiple" defaultValue={['mode', 'profile']} className="space-y-2">
         {/* Mode Selection */}
-        <AccordionItem value="mode" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="mode" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             모드 선택
           </AccordionTrigger>
-          <AccordionContent className="space-y-4 pb-4">
+          <AccordionContent className="px-4 pb-4 space-y-4">
             <RadioGroup
               value={settings.mode}
               onValueChange={(v) => update('mode', v as 'learning' | 'task')}
@@ -45,7 +38,7 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
                 <div>
                   <Label htmlFor="learning" className="font-medium cursor-pointer">학습 모드</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    힌트, 개념 설명, 피드백 중심. 정답/완성 글은 바로 주지 않음
+                    힌트, 개념 설명, 피드백 중심
                   </p>
                 </div>
               </div>
@@ -54,7 +47,7 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
                 <div>
                   <Label htmlFor="task" className="font-medium cursor-pointer">과제/결과물 모드</Label>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    실제 과제, 레포트 등 완성본에 가까운 텍스트 생성
+                    완성본에 가까운 텍스트 생성
                   </p>
                 </div>
               </div>
@@ -104,14 +97,14 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
         </AccordionItem>
 
         {/* Profile Settings */}
-        <AccordionItem value="profile" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="profile" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             <span className="flex items-center gap-2">
               <User className="h-4 w-4" />
               프로필 설정
             </span>
           </AccordionTrigger>
-          <AccordionContent className="space-y-3 pb-4">
+          <AccordionContent className="px-4 pb-4 space-y-3">
             <div>
               <Label className="input-label">과목명</Label>
               <Input
@@ -189,11 +182,11 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
             </div>
 
             <div>
-              <Label className="input-label">관심 분야 및 예시 도메인</Label>
+              <Label className="input-label">관심 분야</Label>
               <Textarea
                 value={settings.interestAreas}
                 onChange={(e) => update('interestAreas', e.target.value)}
-                placeholder="예: 음악, 스타트업, 환경, 전자공학 등"
+                placeholder="예: 음악, 스타트업, 환경"
                 className="min-h-[60px] bg-secondary/30 border-border/50"
               />
             </div>
@@ -201,29 +194,29 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
         </AccordionItem>
 
         {/* Writing Style */}
-        <AccordionItem value="style" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="style" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             스타일 샘플 (선택)
           </AccordionTrigger>
-          <AccordionContent className="pb-4">
+          <AccordionContent className="px-4 pb-4">
             <Textarea
               value={settings.writingStyleSample}
               onChange={(e) => update('writingStyleSample', e.target.value)}
               placeholder="나의 글쓰기 샘플을 붙여넣으면, 비슷한 문체로 작성해 달라고 요청합니다."
-              className="min-h-[100px] bg-secondary/30 border-border/50"
+              className="min-h-[80px] bg-secondary/30 border-border/50"
             />
           </AccordionContent>
         </AccordionItem>
 
         {/* Time/Deadline */}
-        <AccordionItem value="deadline" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="deadline" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             <span className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
               마감/시험 시간
             </span>
           </AccordionTrigger>
-          <AccordionContent className="space-y-3 pb-4">
+          <AccordionContent className="px-4 pb-4 space-y-3">
             <Select
               value={settings.deadlineType}
               onValueChange={(v) => update('deadlineType', v as any)}
@@ -247,19 +240,19 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
         </AccordionItem>
 
         {/* AI Regulation */}
-        <AccordionItem value="regulation" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="regulation" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             <span className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
               AI 사용 규정
             </span>
           </AccordionTrigger>
-          <AccordionContent className="space-y-3 pb-4">
+          <AccordionContent className="px-4 pb-4 space-y-3">
             <Textarea
               value={settings.aiRegulation}
               onChange={(e) => update('aiRegulation', e.target.value)}
-              placeholder="학교/과목별 AI 사용 규정 전문 혹은 요약을 붙여넣으세요."
-              className="min-h-[80px] bg-secondary/30 border-border/50"
+              placeholder="학교/과목별 AI 사용 규정을 붙여넣으세요."
+              className="min-h-[60px] bg-secondary/30 border-border/50"
             />
             <div className="flex items-center gap-2">
               <Switch
@@ -268,21 +261,21 @@ export function CommonSettings({ settings, onChange }: CommonSettingsProps) {
                 onCheckedChange={(c) => update('includeRegulation', c)}
               />
               <Label htmlFor="includeReg" className="cursor-pointer text-sm">
-                프롬프트에 규정 상기·준수 문구 포함
+                규정 상기·준수 문구 포함
               </Label>
             </div>
           </AccordionContent>
         </AccordionItem>
 
         {/* Model/Language Settings */}
-        <AccordionItem value="model" className="border-border/50">
-          <AccordionTrigger className="text-sm font-medium py-3 hover:no-underline">
+        <AccordionItem value="model" className="glass-card rounded-xl border-border/50 overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 text-sm font-medium hover:no-underline hover:bg-secondary/30">
             <span className="flex items-center gap-2">
               <Cpu className="h-4 w-4" />
               모델/언어/난이도
             </span>
           </AccordionTrigger>
-          <AccordionContent className="space-y-3 pb-4">
+          <AccordionContent className="px-4 pb-4 space-y-3">
             <div>
               <Label className="input-label">대상 모델</Label>
               <Select
