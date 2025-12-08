@@ -33,7 +33,7 @@ export function RightPanel({
 
       {/* Panel */}
       <div className={cn("fixed right-0 top-0 h-full z-30 transition-all duration-300 ease-out", isOpen ? "translate-x-0" : "translate-x-full")}>
-        <div className="h-full w-[360px] lg:w-[400px] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-2xl flex flex-col">
+        <div className="h-full w-[360px] lg:w-[400px] bg-card/95 backdrop-blur-md border-l border-border/50 shadow-2xl flex flex-col py-[120px]">
           {/* Panel Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/50 bg-secondary/30">
             <div className="flex gap-1">
@@ -56,7 +56,7 @@ export function RightPanel({
 
           {/* Panel Content */}
           <ScrollArea className="flex-1">
-            <div className="p-4">
+            <div className="p-4 my-0 pt-px">
               {activeSection === 'settings' ? <CommonSettings settings={settings} onChange={onSettingsChange} /> : <PromptLibrary prompts={savedPrompts} onLoad={onLoadPrompt} onDelete={onDeletePrompt} />}
             </div>
           </ScrollArea>
